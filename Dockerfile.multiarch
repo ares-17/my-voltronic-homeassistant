@@ -1,7 +1,5 @@
-# Uncomment if building locally...
-# FROM debian:stretch
-
-FROM --platform=${TARGETPLATFORM:-linux/amd64} debian:stretch
+# Use multi-architecture base image
+FROM --platform=${TARGETPLATFORM:-linux/amd64} debian:bullseye
 
 ARG BUILD_DATE
 ARG VERSION
@@ -26,6 +24,10 @@ ADD config/ /etc/inverter/
 RUN cd /opt/inverter-cli && \
     mkdir bin && cmake . && make && mv inverter_poller bin/
 
+# Import del file monitor.sh per riavviare ciclicamente entrypoint.sh
+ADD monitor.sh /opt/monitor.sh
+RUN chmod +x /opt/monitor.sh
+
 HEALTHCHECK \
     --interval=30s \
     --timeout=10s \
@@ -34,4 +36,6 @@ HEALTHCHECK \
   CMD /opt/healthcheck
 
 WORKDIR /opt
-ENTRYPOINT ["/bin/bash", "/opt/inverter-mqtt/entrypoint.sh"]
+
+# Avvio dello script di monitoraggio al posto di entrypoint.sh
+ENTRYPOINT ["/opt/monitor.sh"]
